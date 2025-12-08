@@ -1,60 +1,73 @@
 ---
-- name: Restart tower simulator pod
+- name: Ensure cell tower simulators are configured from Git
   hosts: localhost
   gather_facts: false
+
+  vars_files:
+    - ../vars/cell_towers.yml
+
   tasks:
-
-    - name: Scale down cell tower deployment
+    - name: Ensure cell tower simulator deployments exist
       kubernetes.core.k8s:
         state: present
         definition:
           apiVersion: apps/v1
           kind: Deployment
           metadata:
-            name: cell-tower-simulator
-            namespace: openshift-operators
+            name: "{{ item.deployment_name }}"
+            namespace: "{{ cell_tower_namespace }}"
           spec:
-            replicas: 0
-        wait: yes
+            replicas: "{{ cell_tower_replicas }}"
+            selector:
+              matchLabels:
+                app: "{{ item.app_label }}"
+            template:
+              metadata:
+                labels:
+                  app: "{{ item.app_label }}"
+              spec:
+                containers:
+                  - name: cell-tower-simulator
+                    image: "{{ cell_tower_image }}"
+                    ports:
+                      - containerPort: 8080
+                        protocol: TCP
+                    env:
+                      - name: CITY_CODE
+                        value: "{{ item.city_code }}"
+      loop: "{{ cell_towers }}"
+      loop_control:
+        label: "{{ item.deployment_name }}"
 
-    - name: Notify remediation started
-      uri:
-        url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
-        method: POST
-        headers:
-          apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
-        body:
-          event_type: "started"
-          tower_id: "{{ cell_id }}"
-        body_format: json
-        status_code: 201
-
-    - name: Scale up cell tower deployment
+    - name: Ensure cell tower simulator Service exists
       kubernetes.core.k8s:
         state: present
         definition:
-          apiVersion: apps/v1
-          kind: Deployment
+          apiVersion: v1
+          kind: Service
           metadata:
-            name: cell-tower-simulator
-            namespace: openshift-operators
+            name: "{{ cell_tower_service_name }}"
+            namespace: "{{ cell_tower_namespace }}"
           spec:
-            replicas: 1
-        wait: yes
+            selector:
+              app: "cell-tower-simulator"
+            ports:
+              - port: "{{ cell_tower_service_port }}"
+                targetPort: "{{ cell_tower_target_port }}"
+                protocol: TCP
 
-
-    - name: Notify remediation completed
-      uri:
-        url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
-        method: POST
-        headers:
-          apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
-        body:
-          event_type: "completed"
-          tower_id: "{{ cell_id }}"
-        body_format: json
-        status_code: 201
-
-    - set_stats:
-        data:
-          check_job_id: "{{ tower_job_id }}"
+    - name: Ensure cell tower simulator Route exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: route.openshift.io/v1
+          kind: Route
+          metadata:
+            name: "{{ cell_tower_route_name }}"
+            namespace: "{{ cell_tower_namespace }}"
+          spec:
+            to:
+              kind: Service
+              name: "{{ cell_tower_service_name }}"
+            port:
+              targetPort: "{{ cell_tower_target_port }}"

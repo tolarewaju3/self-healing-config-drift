@@ -1,0 +1,26 @@
+cell_tower_namespace: openshift-operators
+cell_tower_image: tolarewaju3/cell-tower-simulator
+cell_tower_replicas: 1
+
+# Git source of truth for each simulated tower
+cell_towers:
+  - name: nyc
+    deployment_name: nyc-tower-simulator
+    app_label: nyc-tower-simulator
+    city_code: "NYC"
+
+  - name: chi
+    deployment_name: chi-tower-simulator
+    app_label: chi-tower-simulator
+    city_code: "CHI"
+
+  - name: atx
+    deployment_name: cell-tower-simulator
+    app_label: cell-tower-simulator
+    city_code: "ATX"
+
+# Service and route settings
+cell_tower_service_name: cell-tower-simulator
+cell_tower_route_name: cell-tower-simulator
+cell_tower_service_port: 80
+cell_tower_target_port: 8080
