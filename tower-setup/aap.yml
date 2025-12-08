@@ -279,11 +279,11 @@
         controller_username: "admin"
         controller_password: "{{ controller_password }}"
         validate_certs: false
-        name: "tower-remediation"
+        name: "setup-cell-tower"
         job_type: "run"
         project: "cell-tower"
         inventory: "Demo Inventory"
-        playbook: "playbooks/fix-cell-tower.yml"
+        playbook: "playbooks/setup-cell-tower.yml"
         credentials: 
           - "OpenShift Token Credential"
           - "supabase"
