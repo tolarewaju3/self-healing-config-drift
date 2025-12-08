@@ -1,0 +1,62 @@
+# tasks file for dashboard
+---
+- name: Deploy Cell Tower UI to OpenShift
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: cell-tower-ui
+        namespace: openshift-operators
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: cell-tower-ui
+        template:
+          metadata:
+            labels:
+              app: cell-tower-ui
+          spec:
+            containers:
+              - name: cell-tower-ui
+                image: tolarewaju3/cell-tower-ui
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+
+- name: Create Service for Cell Tower UI
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: cell-tower-ui
+        namespace: openshift-operators
+      spec:
+        selector:
+          app: cell-tower-ui
+        ports:
+          - protocol: TCP
+            port: 8080
+            targetPort: 8080
+
+- name: Create Route for Cell Tower UI
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: cell-tower-ui
+        namespace: openshift-operators
+      spec:
+        to:
+          kind: Service
+          name: cell-tower-ui
+        port:
+          targetPort: 8080
+        tls:
+          termination: edge

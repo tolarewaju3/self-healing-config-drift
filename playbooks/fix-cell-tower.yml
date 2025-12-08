@@ -1,0 +1,60 @@
+---
+- name: Restart tower simulator pod
+  hosts: localhost
+  gather_facts: false
+  tasks:
+
+    - name: Scale down cell tower deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: cell-tower-simulator
+            namespace: openshift-operators
+          spec:
+            replicas: 0
+        wait: yes
+
+    - name: Notify remediation started
+      uri:
+        url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
+        method: POST
+        headers:
+          apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
+        body:
+          event_type: "started"
+          tower_id: "{{ cell_id }}"
+        body_format: json
+        status_code: 201
+
+    - name: Scale up cell tower deployment
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: cell-tower-simulator
+            namespace: openshift-operators
+          spec:
+            replicas: 1
+        wait: yes
+
+
+    - name: Notify remediation completed
+      uri:
+        url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
+        method: POST
+        headers:
+          apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
+        body:
+          event_type: "completed"
+          tower_id: "{{ cell_id }}"
+        body_format: json
+        status_code: 201
+
+    - set_stats:
+        data:
+          check_job_id: "{{ tower_job_id }}"

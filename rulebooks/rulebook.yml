@@ -1,0 +1,35 @@
+---
+- name: Restart tower if drop rate too high
+  hosts: localhost
+
+  sources:
+    - name: Listen for dropped call events
+      ansible.eda.kafka:
+        topic: "{{ kafka_topic | default('dropped-alerts') }}"
+        host: "{{ kafka_url | default('my-cluster-kafka-bootstrap.openshift-operators.svc') }}" 
+        group_id: eda-listener
+        port: 9092
+        deserialize: json
+
+  rules:
+    - name: Detect down cell tower
+      condition: event.body.dropRate > 0.03
+      throttle:
+        once_within: 1 minute
+        group_by_attributes:
+          - event.body.cell_id
+      actions:
+        - debug:
+            msg: "Tower {{ event.body.cell_id }} is down. Remediating.."
+        - run_workflow_template:
+           name: cell-tower-remediation-workflow
+           organization: Default
+           job_args:
+            extra_vars:
+              cell_id: "{{ event.body.cell_id }}"
+
+    - name: Print event
+      condition: event.body is defined
+      action:
+        debug:
+          msg: "Received tower event: {{ event.body }} "

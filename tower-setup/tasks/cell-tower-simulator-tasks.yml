@@ -1,0 +1,121 @@
+---
+# tasks file for call generator
+- name: Create New York Cell Tower Simulator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nyc-tower-simulator
+        namespace: openshift-operators
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: nyc-tower-simulator
+        template:
+          metadata:
+            labels:
+              app: nyc-tower-simulator
+          spec:
+            containers:
+              - name: cell-tower-simulator
+                image: tolarewaju3/cell-tower-simulator
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                env:
+                  - name: CITY_CODE
+                    value: NYC
+
+- name: Create Chicago Cell Tower Simulator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: chi-tower-simulator
+        namespace: openshift-operators
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: chi-tower-simulator
+        template:
+          metadata:
+            labels:
+              app: chi-tower-simulator
+          spec:
+            containers:
+              - name: cell-tower-simulator
+                image: tolarewaju3/cell-tower-simulator
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                env:
+                  - name: CITY_CODE
+                    value: CHI
+
+- name: Create ATX Cell Tower Simulator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: cell-tower-simulator
+        namespace: openshift-operators
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: cell-tower-simulator
+        template:
+          metadata:
+            labels:
+              app: cell-tower-simulator
+          spec:
+            containers:
+              - name: cell-tower-simulator
+                image: tolarewaju3/cell-tower-simulator
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                env:
+                  - name: CITY_CODE
+                    value: ATX
+
+- name: Create Cell Tower Simulator Service
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: cell-tower-simulator
+        namespace: openshift-operators
+      spec:
+        selector:
+          app: cell-tower-simulator
+        ports:
+          - port: 80
+            targetPort: 8080
+            protocol: TCP
+
+- name: Create Cell Tower Simulator Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: cell-tower-simulator
+        namespace: openshift-operators
+      spec:
+        to:
+          kind: Service
+          name: cell-tower-simulator
+        port:
+          targetPort: 8080

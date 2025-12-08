@@ -1,0 +1,8 @@
+create table public.remediation_events (
+  id uuid primary key default gen_random_uuid(),
+  tower_id text not null,
+  message text not null,
+  event_time timestamptz not null default now()
+);
+
+alter publication supabase_realtime add table remediation_events;

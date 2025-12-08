@@ -1,0 +1,48 @@
+---
+- name: Create ServiceNow incident for cell tower issue
+  hosts: all
+  gather_facts: false
+  vars:
+    incident_urgency: "2"
+    incident_impact: "2"
+  tasks:
+
+    - name: Create ServiceNow incident
+      servicenow.itsm.incident:
+        instance:
+          host: "{{ lookup('env', 'SN_HOST') }}"
+          username: "{{ lookup('env', 'SN_USERNAME') }}"
+          password: "{{ lookup('env', 'SN_PASSWORD') }}"
+        state: new
+        short_description: "Cell Tower {{ cell_id }} - Performance Degradation"
+        description: |
+          A performance issue has been detected on cell tower {{ cell_id }}.
+
+          Issue Details:
+          - Tower ID: {{ cell_id }}
+          - Issue Type: {{ issue_type | default('Signal degradation') }}
+          - Detected At: {{ ansible_date_time.iso8601 | default(lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')) }}
+
+          Please investigate and take appropriate action.
+        urgency: "{{ incident_urgency }}"
+        impact: "{{ incident_impact }}"
+        caller: "{{ caller | default(omit) }}"
+      register: incident_result
+
+    - name: Display incident number
+      debug:
+        msg: "ServiceNow incident created: {{ incident_result.record.number }}"
+
+    # - name: Notify incident created
+    #   uri:
+    #     url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
+    #     method: POST
+    #     headers:
+    #       apiKey: "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
+    #     body:
+    #       event_type: "incident_created"
+    #       tower_id: "{{ cell_id }}"
+    #       # incident_number: "{{ incident_result.record.number }}"
+    #     body_format: json
+    #     status_code: 201
+

@@ -1,0 +1,38 @@
+# Maven build output
+simulator/target
+target/
+*.jar
+
+# Quarkus dev services containers (Testcontainers)
+/quarkus-dev-*
+
+# IDE files
+*.iml
+.idea/
+*.class
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Eclipse/VSCode
+.project
+.classpath
+.settings/
+.vscode/
+
+# Build tools
+.mvn/
+build/
+
+# Quarkus configuration cache
+/.quarkus/
+
+# Environment and credentials
+.env
+*.key
+*.p12
+*.jks
+*.pem
+vars/secrets.yml

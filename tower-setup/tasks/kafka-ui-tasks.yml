@@ -1,0 +1,56 @@
+---
+- name: Create Kafka UI Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: kafka-ui
+        namespace: openshift-operators
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: kafka-ui
+        template:
+          metadata:
+            labels:
+              app: kafka-ui
+          spec:
+            containers:
+              - name: kafka-ui
+                image: provectuslabs/kafka-ui:latest
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                env:
+                  - name: KAFKA_CLUSTERS_0_NAME
+                    value: "local"
+                  - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+                    value: "my-cluster-kafka-bootstrap:9092"
+                    
+- name: Create Service for Kafka UI
+  redhat.openshift.k8s:
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: kafka-ui
+        namespace: openshift-operators
+      spec:
+        ports:
+          - port: 80
+            targetPort: 8080
+            protocol: TCP
+        selector:
+          app: kafka-ui
+    state: present
+
+- name: Expose the kafka ui route
+  redhat.openshift.openshift_route:
+    service: kafka-ui
+    namespace: openshift-operators
+    state: present
+    termination: edge
+  register: kafkaui_rote

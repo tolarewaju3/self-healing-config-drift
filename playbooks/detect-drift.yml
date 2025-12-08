@@ -1,0 +1,59 @@
+---
+- name: Detect drift from previous check mode job
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # The job id of the check mode job you ran in Node 1
+    check_job_id: "{{ check_job_id }}"
+
+  tasks:
+
+    - name: Get job host summaries for the previous job
+      ansible.builtin.uri:
+        url: "{{ lookup('env', 'CONTROLLER_HOST') }}/api/v2/jobs/{{ check_job_id }}/job_host_summaries/"
+        method: GET
+        user: "{{ lookup('env', 'CONTROLLER_USERNAME') }}"
+        password: "{{ lookup('env', 'CONTROLLER_PASSWORD') }}"
+        force_basic_auth: yes
+        validate_certs: False
+      register: job_summaries
+
+    - name: Show raw job host summaries (optional)
+      ansible.builtin.debug:
+        var: job_summaries.json
+      when: job_summaries.json is defined
+
+    - name: Build list of drifted hosts (changed > 0)
+      ansible.builtin.set_fact:
+        drifted_hosts: >-
+          {{
+            job_summaries.json.results
+            | selectattr('changed', '>', 0)
+            | map(attribute='host_name')
+            | list
+          }}
+      when: job_summaries.json is defined
+
+    - name: Compute drift flag
+      ansible.builtin.set_fact:
+        drift_detected: "{{ drifted_hosts | length > 0 }}"
+
+    - name: Export drift info to workflow
+      ansible.builtin.set_stats:
+        data:
+          drift_detected: "{{ drift_detected }}"
+          drifted_hosts: "{{ drifted_hosts }}"
+
+    - name: Log drift summary
+      ansible.builtin.debug:
+        msg: >-
+          Drift detected: {{ drift_detected }}.
+          Drifted hosts: {{ drifted_hosts | default([]) | join(', ') }}
+
+    - name: Fail if drift detected
+      ansible.builtin.fail:
+        msg: >-
+          Drift detected on hosts: {{ drifted_hosts | default([]) | join(', ') }}.
+          See previous job {{ check_job_id }} for details.
+      when: drift_detected | bool

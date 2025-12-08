@@ -1,0 +1,20 @@
+---
+- name: Self Healing Network Setup
+  hosts: localhost
+
+  tasks:
+
+    - name: Setup Kafka Cluster & Topic
+      import_tasks: tasks/kafka-tasks.yml
+
+    - name: Setup Kafka UI
+      import_tasks: tasks/kafka-ui-tasks.yml
+
+    - name: Setup Flink
+      import_tasks: tasks/flink-tasks.yml
+
+    - name: Deploy Call Generator
+      import_tasks: tasks/cell-tower-simulator-tasks.yml
+
+    - name: Deploy Network Dashboard
+      import_tasks: tasks/dashboard-tasks.yml

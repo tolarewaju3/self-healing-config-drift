@@ -1,0 +1,6 @@
+---
+- name: Self Healing Network Setup
+  hosts: localhost
+
+- import_playbook: playbook.yml
+- import_playbook: aap.yml

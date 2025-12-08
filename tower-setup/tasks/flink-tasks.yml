@@ -1,0 +1,114 @@
+# tasks file for data-grid
+---
+- name: Create Flink Operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: flink-kubernetes-operator
+        namespace: openshift-operators
+      spec:
+        channel: alpha
+        installPlanApproval: Automatic
+        name: flink-kubernetes-operator
+        source: community-operators
+        sourceNamespace: openshift-marketplace
+        startingCSV: flink-kubernetes-operator.v1.13.0
+
+- name: Wait for flink operator to be ready
+  kubernetes.core.k8s_info:
+    kind: Pod
+    namespace: openshift-operators
+    label_selectors:
+      - app.kubernetes.io/name=flink-kubernetes-operator
+    wait: yes
+
+- name: Create Apache Flink Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: flink.apache.org/v1beta1
+      kind: FlinkDeployment
+      metadata:
+        name: flink-streaming
+        namespace: openshift-operators
+      spec:
+        image: 'flink:1.16'
+        flinkVersion: v1_16
+        flinkConfiguration:
+          taskmanager.numberOfTaskSlots: '2'
+        serviceAccount: flink
+        jobManager:
+          resource:
+            memory: 2048m
+            cpu: 1
+        taskManager:
+          resource:
+            memory: 2048m
+            cpu: 1
+  register: flink_deploy_result
+  retries: 5
+  delay: 10
+  until: flink_deploy_result is not failed
+
+- name: Wait for flink deployment
+  kubernetes.core.k8s_info:
+    kind: Deployment
+    namespace: openshift-operators
+    name: flink-streaming
+    wait: yes
+
+- name: Create Apache Flink Route
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: flink-rest
+        namespace: openshift-operators
+        labels:
+          app: flink-streaming
+          type: flink-native-kubernetes
+      spec:
+        to:
+          kind: Service
+          name: flink-streaming-rest
+        tls: null
+        port:
+          targetPort: rest
+
+- name: Wait for flink route to deploy
+  kubernetes.core.k8s_info:
+    kind: Route
+    namespace: openshift-operators
+    name: flink-rest
+    wait: yes
+  register: flink_route
+
+- set_fact:
+    flink_url: "{{ flink_route.resources[0].spec.host }}"
+
+- name: Download flink job
+  ansible.builtin.get_url:
+    url: https://code-like-the-wind.s3.us-east-2.amazonaws.com/cell-tower-flink-streaming-1.0.jar
+    dest: /tmp/cell-tower-flink-streaming-1.0.jar
+
+- name: Upload flink job
+  shell: 'curl -X POST -H "Expect:" -F "jarfile=@/tmp/cell-tower-flink-streaming-1.0.jar"  \
+                http://{{ flink_url }}/jars/upload'
+
+- name: Get all flink jobs
+  shell: 'curl -X GET "http://{{ flink_url }}/jars"'
+  register: result
+
+- set_fact:
+    stdout: "{{ result.stdout_lines[0] }}"
+
+- set_fact:
+    job: "{{ stdout.files[0] }}"
+
+- name: Run flink job
+  shell: 'curl -X POST "http://{{ flink_url }}/jars/{{ job.id }}/run?entry-class=com.demo.flink.streaming.StreamingJob"'
