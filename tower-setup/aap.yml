@@ -332,7 +332,7 @@
           identifier: "fix-cell-tower"
           job_type: "run"
           workflow_job_template: "cell-tower-remediation-workflow"
-          unified_job_template: "tower-remediation"
+          unified_job_template: "setup-cell-tower"
           organization: Default
           state: present
 
@@ -373,7 +373,7 @@
           identifier: "check-cell-tower"
           job_type: "check"
           workflow_job_template: "cell-tower-remediation-workflow"
-          unified_job_template: "tower-remediation"
+          unified_job_template: "setup-cell-tower"
           success_nodes:
             - "approve-remediation"
           organization: Default
