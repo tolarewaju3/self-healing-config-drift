@@ -10,7 +10,7 @@
   vars:
     namespace: aap
     project_name: "cell-tower"
-    scm_url: "https://github.com/tolarewaju3/cell-tower-simulator.git"
+    scm_url: "https://github.com/tolarewaju3/self-healing-config-drift.git"
 
   tasks:
     - name: Create namespace for AAP
