@@ -57,6 +57,7 @@
           event_type: "drift_detected"
           tower_id: "{{ cell_id }}"
           msg: "Awaiting approval for remediation."
+          job_link: "{{ lookup('env', 'CONTROLLER_HOST') }}/#job/{{ check_job_id }}"
         body_format: json
         status_code: 201
       when: drift_detected | bool
