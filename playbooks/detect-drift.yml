@@ -58,7 +58,7 @@
           tower_id: "{{ cell_id }}"
         body_format: json
         status_code: 201
-        when: drift_detected | bool
+      when: drift_detected | bool
 
     - name: Fail if drift detected
       ansible.builtin.fail:
