@@ -35,6 +35,8 @@
                     env:
                       - name: CITY_CODE
                         value: "{{ item.city_code }}"
+                      - name: MAX_ACTIVE_CALLS
+                        value: "{{ item.max_active_calls | string }}"
       loop: "{{ cell_towers }}"
       loop_control:
         label: "{{ item.deployment_name }}"
