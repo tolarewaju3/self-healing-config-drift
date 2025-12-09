@@ -20,7 +20,7 @@ cell_towers:
     deployment_name: cell-tower-simulator
     app_label: cell-tower-simulator
     city_code: "ATX"
-    max_active_calls: 100
+    max_active_calls: 100000
 
 # Service and route settings
 cell_tower_service_name: cell-tower-simulator
