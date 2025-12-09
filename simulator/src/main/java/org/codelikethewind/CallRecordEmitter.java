@@ -64,7 +64,7 @@ public class CallRecordEmitter {
     }
 
     // Simulate calls ending - decrement active calls periodically
-    @Scheduled(every = "2s", delayed = "10s")
+    @Scheduled(every = "3s", delayed = "10s")
     void endCalls() {
         if (control.getActiveCallCount() > 0) {
             control.decrementActiveCalls();

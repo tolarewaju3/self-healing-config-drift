@@ -51,6 +51,19 @@
           Drift detected: {{ drift_detected }}.
           Drifted hosts: {{ drifted_hosts | default([]) | join(', ') }}
 
+    - name: Notify config drift detected
+      uri:
+        url: "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1/remediation_events"
+        method: POST
+        headers:
+          apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
+        body:
+          event_type: "started"
+          tower_id: "{{ cell_id }}"
+        body_format: json
+        status_code: 201
+        when: drift_detected | bool
+
     - name: Fail if drift detected
       ansible.builtin.fail:
         msg: >-
