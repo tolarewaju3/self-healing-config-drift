@@ -54,7 +54,7 @@
         headers:
           apiKey:  "{{ lookup('env', 'SUPABASE_ANON_KEY') }}"
         body:
-          event_type: "started"
+          event_type: "drift_detected"
           tower_id: "{{ cell_id }}"
         body_format: json
         status_code: 201
