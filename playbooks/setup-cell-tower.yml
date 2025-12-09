@@ -73,3 +73,7 @@
               name: "{{ cell_tower_service_name }}"
             port:
               targetPort: "{{ cell_tower_target_port }}"
+    
+    - set_stats:
+        data:
+          check_job_id: "{{ tower_job_id }}"
