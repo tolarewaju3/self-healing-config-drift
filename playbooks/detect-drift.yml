@@ -3,10 +3,6 @@
   hosts: localhost
   gather_facts: false
 
-  vars:
-    # The job id of the check mode job you ran in Node 1
-    check_job_id: "{{ check_job_id }}"
-
   tasks:
 
     - name: Get job host summaries for the previous job
