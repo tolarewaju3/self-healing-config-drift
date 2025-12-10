@@ -22,26 +22,20 @@
           - Tower ID: {{ cell_id }}
           - Issue Type: {{ issue_type | default('Signal degradation') }}
           - Detected At: {{ ansible_date_time.iso8601 | default(lookup('pipe', 'date -u +%Y-%m-%dT%H:%M:%SZ')) }}
+          {% if config_drift | default(false) | bool %}
+
+          This incident was caused by a configuration drift issue.
+          The tower configuration deviated from the expected baseline settings.
+          Automatic remediation is awaiting approval to restore the correct configuration.
+
+          Approve remediation: {{ lookup('env', 'AAP_HOST') }}/#/workflow_approvals
+          {% endif %}
 
           Please investigate and take appropriate action.
         urgency: "{{ incident_urgency }}"
         impact: "{{ incident_impact }}"
         caller: "{{ caller | default(omit) }}"
       register: incident_result
-
-    - name: Add configuration drift note to incident
-      servicenow.itsm.incident:
-        instance:
-          host: "{{ lookup('env', 'SN_HOST') }}"
-          username: "{{ lookup('env', 'SN_USERNAME') }}"
-          password: "{{ lookup('env', 'SN_PASSWORD') }}"
-        number: "{{ incident_result.record.number }}"
-        other:
-          work_notes: |
-            This incident was caused by a configuration drift issue.
-            The tower configuration deviated from the expected baseline settings.
-            Automatic remediation is awaiting approval to restore the correct configuration.
-      when: config_drift | default(false) | bool
 
     - name: Display incident number
       debug:
