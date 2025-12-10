@@ -28,7 +28,7 @@
           The tower configuration deviated from the expected baseline settings.
           Automatic remediation is awaiting approval to restore the correct configuration.
 
-          Approve remediation: {{ lookup('env', 'AAP_HOST') }}/#/workflow_approvals
+          Approve remediation: {{ lookup('env', 'AAP_HOSTNAME') }}/jobs/workflow/{{ tower_workflow_job_id }}/
           {% endif %}
 
           Please investigate and take appropriate action.
