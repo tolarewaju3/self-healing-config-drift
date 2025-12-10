@@ -28,12 +28,11 @@
           The tower configuration deviated from the expected baseline settings.
           Automatic remediation is awaiting approval to restore the correct configuration.
 
-          Approve remediation: {{ lookup('env', 'AAP_HOSTNAME') }}/execution/jobs/workflow/{{ tower_workflow_job_id }}/
-          Approve remediation: {{ lookup('env', 'AAP_HOSTNAME') }}/execution/administration/workflow-approvals
+          See workflow notes.
 
           {% endif %}
 
-          Please investigate and take appropriate action.
+
         urgency: "{{ incident_urgency }}"
         impact: "{{ incident_impact }}"
         caller: "{{ caller | default(omit) }}"
@@ -47,7 +46,18 @@
           password: "{{ lookup('env', 'SN_PASSWORD') }}"
         number: "{{ incident_result.record.number }}"
         other:
-          work_notes: '[code]<a href="{{ lookup(''env'', ''AAP_HOSTNAME'') }}/execution/jobs/workflow/{{ tower_workflow_job_id }}/" target="_blank">Workflow approval</a>[/code]'
+          work_notes: '[code]<a href="{{ lookup(''env'', ''AAP_HOSTNAME'') }}/execution/jobs/workflow/{{ tower_workflow_job_id }}/output" target="_blank">Workflow Job</a>[/code]'
+      when: config_drift | default(false) | bool
+
+    - name: Add configuration drift work note
+      servicenow.itsm.incident:
+        instance:
+          host: "{{ lookup('env', 'SN_HOST') }}"
+          username: "{{ lookup('env', 'SN_USERNAME') }}"
+          password: "{{ lookup('env', 'SN_PASSWORD') }}"
+        number: "{{ incident_result.record.number }}"
+        other:
+          work_notes: '[code]<a href="{{ lookup(''env'', ''AAP_HOSTNAME'') }}/execution/administration/workflow-approvals" target="_blank">Workflow approval</a>[/code]'
       when: config_drift | default(false) | bool
 
     - name: Display incident number
