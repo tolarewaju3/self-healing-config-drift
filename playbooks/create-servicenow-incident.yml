@@ -29,6 +29,8 @@
           Automatic remediation is awaiting approval to restore the correct configuration.
 
           Approve remediation: {{ lookup('env', 'AAP_HOSTNAME') }}/jobs/workflow/{{ tower_workflow_job_id }}/
+          Approve remediation: {{ lookup('env', 'AAP_HOSTNAME') }}/execution/administration/workflow-approvals
+
           {% endif %}
 
           Please investigate and take appropriate action.
