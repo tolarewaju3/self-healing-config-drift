@@ -29,6 +29,20 @@
         caller: "{{ caller | default(omit) }}"
       register: incident_result
 
+    - name: Add configuration drift note to incident
+      servicenow.itsm.incident:
+        instance:
+          host: "{{ lookup('env', 'SN_HOST') }}"
+          username: "{{ lookup('env', 'SN_USERNAME') }}"
+          password: "{{ lookup('env', 'SN_PASSWORD') }}"
+        number: "{{ incident_result.record.number }}"
+        other:
+          work_notes: |
+            This incident was caused by a configuration drift issue.
+            The tower configuration deviated from the expected baseline settings.
+            Automatic remediation is awaiting approval to restore the correct configuration.
+      when: config_drift | default(false) | bool
+
     - name: Display incident number
       debug:
         msg: "ServiceNow incident created: {{ incident_result.record.number }}"
