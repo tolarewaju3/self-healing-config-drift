@@ -36,7 +36,6 @@
 
         urgency: "{{ incident_urgency }}"
         impact: "{{ incident_impact }}"
-        caller: "{{ caller | default(omit) }}"
       register: incident_result
 
     - name: Add configuration drift work note
