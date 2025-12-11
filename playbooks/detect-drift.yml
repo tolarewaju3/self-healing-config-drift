@@ -62,9 +62,8 @@
         status_code: 201
       when: drift_detected | bool
 
-    - name: Fail if drift detected
+    - name: Fail if no drift detected
       ansible.builtin.fail:
         msg: >-
-          Drift detected on hosts: {{ drifted_hosts | default([]) | join(', ') }}.
-          See previous job {{ check_job_id }} for details.
-      when: drift_detected | bool
+          No drift detected. All hosts are in compliance.
+      when: not (drift_detected | bool)
