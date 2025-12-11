@@ -28,8 +28,3 @@
             extra_vars:
               cell_id: "{{ event.body.cell_id }}"
 
-    - name: Print event
-      condition: event.body is defined
-      action:
-        debug:
-          msg: "Received tower event: {{ event.body }} "
