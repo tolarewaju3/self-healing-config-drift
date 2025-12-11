@@ -14,6 +14,8 @@
           username: "{{ lookup('env', 'SN_USERNAME') }}"
           password: "{{ lookup('env', 'SN_PASSWORD') }}"
         state: new
+        caller: admin
+        category: "Hardware"
         short_description: "Cell Tower {{ cell_id }} - Performance Degradation"
         description: |
           A performance issue has been detected on cell tower {{ cell_id }}.
