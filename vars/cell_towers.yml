@@ -17,8 +17,8 @@ cell_towers:
     max_active_calls: 350
 
   - name: atx
-    deployment_name: cell-tower-simulator
-    app_label: cell-tower-simulator
+    deployment_name: atx-tower-simulator
+    app_label: atx-tower-simulator
     city_code: "ATX"
     max_active_calls: 350
 
