@@ -21,7 +21,7 @@
           spec:
             containers:
               - name: cell-tower-ui
-                image: tolarewaju3/cell-tower-ui
+                image: tolarewaju3/network-dashboard
                 ports:
                   - containerPort: 8080
                     protocol: TCP
