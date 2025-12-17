@@ -1,108 +1,281 @@
-# 📡 Cell Tower Call Simulator
+# 🔧 Self-Healing Infrastructure Demo
 
-A Java-based call record simulator that mimics real-world cell tower traffic, including dropped calls. Built with [Quarkus](https://quarkus.io/) and Kafka, it emits call records at a configurable drop rate to simulate network health for demos, dashboards, or testing self-healing systems.
+A comprehensive demonstration of self-healing infrastructure capabilities using Ansible Automation Platform (AAP) and Event-Driven Ansible (EDA). This project simulates cell tower infrastructure that automatically detects configuration drift and remediates failures without manual intervention.
 
----
+## 📋 Overview
 
-## 🚀 Features
+This demo showcases:
 
-- Emits realistic call records on a timer (e.g., every 3 seconds)
-- Simulates dropped calls using a configurable drop rate
-- Sends records to Kafka
-- Exposes a `/control` REST API for:
-    - Toggling the emitter on/off
-    - Adjusting drop rate dynamically
-    - Viewing current emitter state
-- Dev-friendly: runs locally with Quarkus Dev Services (no Kafka setup needed)
-- Deployable to OpenShift or any container platform
+- **Automatic Drift Detection**: Monitors cell tower configurations and detects when they deviate from the desired state
+- **Event-Driven Remediation**: Uses EDA rulebooks to automatically trigger remediation workflows when issues are detected
+- **Infrastructure Simulation**: Simulates multiple cell towers with configurable drop rates to demonstrate real-world scenarios
+- **Integration with ServiceNow**: Creates incidents for tracking and approval workflows
+- **Real-time Monitoring**: Provides dashboards and Kafka UI for monitoring system health
 
----
+## 🎯 Architecture
 
-## 🔧 Configuration
+The demo consists of:
 
-Set in `application.properties` or via environment variables:
+1. **Cell Tower Simulators**: Java/Quarkus applications that simulate cell tower behavior and emit call records
+2. **Kafka**: Message broker for streaming call records and alerts
+3. **Apache Flink**: Stream processing for analyzing call data and detecting anomalies
+4. **Ansible Automation Platform**: Orchestrates remediation workflows
+5. **Event-Driven Ansible**: Listens for events and triggers automated responses
+6. **Network Dashboard**: Visualizes tower health and metrics
 
-```properties
-# Kafka topic config
-mp.messaging.outgoing.callrecord-out.topic=${CALL_RECORD_TOPIC:call-records}
+## 📦 Prerequisites
 
-```
+Before installing this demo, ensure you have:
 
----
+1. **A running OpenShift Container Platform (OCP) cluster**
+   - Access to the cluster with admin privileges
+   - Sufficient resources for deploying AAP and supporting infrastructure
 
-## 🛠 REST API
+2. **Ansible Automation Platform subscription**
+   - Valid Red Hat subscription with AAP entitlement
+   - Access to the Red Hat Operator Catalog
 
-**Base path:** `/control`
+3. **OpenShift CLI (`oc`) installed and configured**
 
-| Method | Endpoint                     | Description                         |
-|--------|------------------------------|-------------------------------------|
-| GET    | `/control`                   | Returns drop rate & emitter status  |
-| POST   | `/control/drop-rate?value=0.2` | Sets the drop rate (0.0 - 1.0)      |
-| POST   | `/control/enable`            | Enables call emission               |
-| POST   | `/control/disable`           | Disables call emission              |
+4. **Ansible installed locally** (for running the setup playbook)
 
-### Example:
+## 🚀 Installation
 
-```bash
-curl -X POST http://localhost:8080/control/drop-rate?value=0.3
-```
+### Step 1: Login to OpenShift
 
----
-
-## 🧪 Running Locally
+First, authenticate to your OpenShift cluster:
 
 ```bash
-mvn quarkus:dev
+oc login -u <admin_username> -p <admin_password> <api_url>
 ```
 
-Quarkus will automatically start a Kafka container using Dev Services. No manual setup needed.
+Replace:
+- `<admin_username>` with your OpenShift admin username
+- `<admin_password>` with your admin password
+- `<api_url>` with your OpenShift API URL (e.g., `https://api.your-cluster.example.com:6443`)
 
----
+### Step 2: Run the Setup Playbook
 
-## ☁️ Deploying to OpenShift
+Navigate to the `tower-setup` directory and run the main setup playbook:
 
-1. Build the JAR:
-   ```bash
-   ./mvnw clean package -DskipTests
-   ```
-
-2. Deploy via S2I or custom image:
-   ```bash
-   oc start-build <your-app> --from-file=target/quarkus-app/quarkus-run.jar
-   ```
-
-3. Expose a route if needed:
-   ```bash
-   oc expose svc/<your-app>
-   ```
-
-✅ Make sure to remove or configure TLS correctly for your route if you're not using HTTPS inside Quarkus.
-
----
-
-## 📄 Example Call Record Format
-
-```json
-{
-  "cell_id": "A1B2C3",
-  "lat": 37.7749,
-  "lng": -122.4194,
-  "signal_strength": -78,
-  "is_dropped": false,
-  "timestamp": "2025-05-19T18:30:00Z"
-}
+```bash
+cd tower-setup
+ansible-playbook setup-all.yml
 ```
 
----
+This playbook will:
 
-## 📦 Tech Stack
+1. **Deploy Infrastructure Components**:
+   - Kafka cluster and topics
+   - Kafka UI for monitoring
+   - Apache Flink for stream processing
+   - Cell tower simulators
+   - Network dashboard
 
-- Quarkus (RESTEasy + Scheduler + Kafka)
-- Kafka Dev Services
-- OpenShift (for deployment)
+2. **Install and Configure AAP**:
+   - Install the AAP Operator
+   - Deploy Ansible Automation Platform instance
+   - Create projects, credentials, and job templates
+   - Set up workflow templates for remediation
 
----
+3. **Configure Event-Driven Ansible**:
+   - Create EDA projects and rulebooks
+   - Set up rulebook activations for automatic remediation
+   - Configure event sources (Kafka listeners)
 
-## 📝 License
+### Step 3: Verify Installation
+
+After the playbook completes, verify the installation:
+
+1. **Check AAP Routes**:
+   ```bash
+   oc get routes -n aap
+   ```
+   You should see routes for:
+   - AAP (Automation Platform)
+   - AAP Controller
+   - AAP EDA
+
+2. **Check Cell Tower Simulators**:
+   ```bash
+   oc get pods -n openshift-operators | grep tower
+   ```
+
+3. **Check Kafka and Flink**:
+   ```bash
+   oc get pods -n openshift-operators | grep -E "kafka|flink"
+   ```
+
+## 🔄 How It Works
+
+### 1. Monitoring and Detection
+
+- Cell tower simulators continuously emit call records to Kafka
+- Flink processes these records and calculates drop rates
+- When a tower's drop rate exceeds the threshold (3%), an alert is published to Kafka
+
+### 2. Event-Driven Response
+
+- EDA rulebook listens to the `dropped-alerts` Kafka topic
+- When an alert is received, it triggers the remediation workflow in AAP
+
+### 3. Remediation Workflow
+
+The remediation workflow (`cell-tower-remediation-workflow`) performs:
+
+1. **Check Tower State**: Runs a check mode playbook to detect configuration drift
+2. **Detect Drift**: Analyzes the check results to identify drifted configurations
+3. **Create ServiceNow Incident**: Creates a ticket for tracking (if drift detected)
+4. **Approval Gate**: Requires manual approval before remediation
+5. **Remediate**: Applies the correct configuration to restore the tower to desired state
+
+### 4. Configuration as Code
+
+Tower configurations are stored in Git (`vars/cell_towers.yml`), serving as the source of truth. The remediation playbook ensures towers match this desired state.
+
+## 📁 Project Structure
+
+```
+.
+├── playbooks/
+│   ├── detect-drift.yml          # Detects configuration drift from check mode results
+│   ├── setup-cell-tower.yml      # Sets up/remediates cell tower configurations
+│   └── create-servicenow-incident.yml  # Creates ServiceNow tickets
+├── rulebooks/
+│   └── rulebook.yml               # EDA rulebook for automatic remediation triggers
+├── tower-setup/
+│   ├── setup-all.yml              # Main setup playbook
+│   ├── playbook.yml               # Infrastructure deployment
+│   ├── aap.yml                    # AAP installation and configuration
+│   └── tasks/                     # Task files for various components
+├── simulator/                     # Cell tower simulator application
+└── vars/
+    ├── cell_towers.yml            # Source of truth for tower configurations
+    └── secrets.yml                # Secret variables (not in repo)
+```
+
+## 🎮 Usage
+
+### Accessing AAP
+
+After installation, access the AAP Controller:
+
+1. Get the route:
+   ```bash
+   oc get route aap-controller -n aap -o jsonpath='{.spec.host}'
+   ```
+
+2. Get the admin password:
+   ```bash
+   oc get secret aap-controller-admin-password -n aap -o jsonpath='{.data.password}' | base64 -d
+   ```
+
+3. Login at: `https://<route-hostname>`
+
+### Triggering Manual Remediation
+
+You can manually trigger the remediation workflow:
+
+1. Navigate to **Templates** → **Workflow Templates** in AAP
+2. Select `cell-tower-remediation-workflow`
+3. Click **Launch**
+4. Provide the `cell_id` variable (e.g., `NYC`, `CHI`, `ATX`)
+
+### Simulating Tower Failures
+
+To test the self-healing capabilities:
+
+1. Access a cell tower simulator route
+2. Increase the drop rate:
+   ```bash
+   curl -X POST http://<tower-route>/control/drop-rate?value=0.5
+   ```
+3. Watch EDA detect the issue and trigger remediation
+
+## 🔍 Monitoring
+
+### Kafka UI
+
+Access Kafka UI to monitor message flow:
+
+```bash
+oc get route kafka-ui -n openshift-operators -o jsonpath='{.spec.host}'
+```
+
+### Network Dashboard
+
+Access the network dashboard to view tower health:
+
+```bash
+oc get route network-dashboard -n openshift-operators -o jsonpath='{.spec.host}'
+```
+
+### AAP Job History
+
+View remediation history in AAP:
+- Navigate to **Jobs** → **Completed** to see remediation runs
+- Check workflow visualizations to see the approval gates
+
+## 🛠️ Customization
+
+### Adding New Towers
+
+Edit `vars/cell_towers.yml` to add new cell towers:
+
+```yaml
+cell_towers:
+  - name: new_city
+    deployment_name: new-city-tower-simulator
+    app_label: new-city-tower-simulator
+    city_code: "NEW"
+    max_active_calls: 400
+```
+
+Then re-run the setup playbook or the `setup-cell-tower` job template.
+
+### Adjusting Thresholds
+
+Modify the drift detection threshold in `rulebooks/rulebook.yml`:
+
+```yaml
+condition: event.body.dropRate > 0.05  # Change from 0.03 to 0.05
+```
+
+## 📝 Notes
+
+- The setup process may take 15-30 minutes depending on cluster resources
+- Ensure you have sufficient cluster capacity for AAP (recommended: 8+ CPU cores, 32GB+ RAM)
+- ServiceNow integration requires valid credentials configured in AAP
+- The demo uses Supabase for event tracking (configure credentials in `vars/secrets.yml`)
+
+## 🐛 Troubleshooting
+
+### AAP Not Starting
+
+Check operator logs:
+```bash
+oc logs -n aap -l app.kubernetes.io/name=ansible-automation-platform-operator
+```
+
+### EDA Rulebook Not Activating
+
+Verify the rulebook activation status:
+```bash
+oc get rulebookactivation -n aap
+```
+
+Check EDA logs:
+```bash
+oc logs -n aap -l app=eda
+```
+
+### Towers Not Emitting Events
+
+Check simulator pod logs:
+```bash
+oc logs -n openshift-operators <tower-pod-name>
+```
+
+## 📄 License
 
 MIT License. Use it, break it, improve it.
