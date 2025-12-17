@@ -52,7 +52,7 @@
             namespace: "{{ cell_tower_namespace }}"
           spec:
             selector:
-              app: "atx-tower-simulator"
+              app: "cell-tower-simulator"
             ports:
               - port: "{{ cell_tower_service_port }}"
                 targetPort: "{{ cell_tower_target_port }}"

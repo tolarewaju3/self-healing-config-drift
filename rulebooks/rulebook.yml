@@ -1,5 +1,5 @@
 ---
-- name: Restart tower if drop rate too high
+- name: Remediate tower if drop rate too high
   hosts: localhost
 
   sources:

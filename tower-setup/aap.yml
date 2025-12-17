@@ -11,6 +11,7 @@
     namespace: aap
     project_name: "cell-tower"
     scm_url: "https://github.com/tolarewaju3/self-healing-config-drift.git"
+    workflow_name: "cell-tower-remediation-workflow"
 
   tasks:
     - name: Create namespace for AAP
@@ -273,7 +274,55 @@
           bearer_token: "{{ ocp_bearer_token }}"
       register: result
 
-    - name: Create Job Template for fix-cell-tower
+    - name: Create AAP Controller Credential
+      awx.awx.credential:
+        controller_host: "{{ controller_hostname }}"
+        controller_username: "admin"
+        controller_password: "{{ controller_password }}"
+        validate_certs: false
+        name: "AAP Controller Credential"
+        organization: Default
+        credential_type: "Red Hat Ansible Automation Platform"
+        inputs:
+          host: "{{ controller_hostname }}"
+          username: "admin"
+          password: "{{ controller_password }}"
+      register: result
+
+    - name: Create AAP Credential
+      awx.awx.credential:
+        controller_host: "{{ controller_hostname }}"
+        controller_username: "admin"
+        controller_password: "{{ controller_password }}"
+        validate_certs: false
+        name: "AAP Admin Credential"
+        organization: Default
+        credential_type: "Red Hat Ansible Automation Platform"
+        inputs:
+          host: "{{ aap_hostname }}"
+          username: admin
+          password: "{{ aap_password }}"
+      register: result
+
+    - name: Create Job Template for detect-drift
+      awx.awx.job_template:
+        controller_host: "{{ controller_hostname }}"
+        controller_username: "admin"
+        controller_password: "{{ controller_password }}"
+        validate_certs: false
+        name: "detect-drift"
+        job_type: "run"
+        project: "cell-tower"
+        inventory: "Demo Inventory"
+        playbook: "playbooks/detect-drift.yml"
+        credentials: 
+          - "AAP Controller Credential"
+          - "supabase"
+        execution_environment: "Default execution environment"
+        ask_job_type_on_launch: true
+        ask_variables_on_launch: true
+
+    - name: Create Job Template for setup-cell-tower
       awx.awx.job_template:
         controller_host: "{{ controller_hostname }}"
         controller_username: "admin"
@@ -306,6 +355,7 @@
         credentials: 
           - "supabase"
           - "servicenow"
+          - "AAP Admin Credential"
         execution_environment: "Default execution environment"
         ask_variables_on_launch: true
 
@@ -317,7 +367,7 @@
           controller_username: "admin"
           controller_password: "{{ controller_password }}"
           validate_certs: false
-          name: "cell-tower-remediation-workflow"
+          name: "{{ workflow_name }}"
           description: "Creates a ServiceNow incident and then remediates the cell tower"
           organization: Default
           ask_variables_on_launch: true
@@ -329,9 +379,9 @@
           controller_username: "admin"
           controller_password: "{{ controller_password }}"
           validate_certs: false
-          identifier: "fix-cell-tower"
+          identifier: "Fix Cell Tower"
           job_type: "run"
-          workflow_job_template: "cell-tower-remediation-workflow"
+          workflow_job_template: "{{ workflow_name }}"
           unified_job_template: "setup-cell-tower"
           organization: Default
           state: present
@@ -342,8 +392,8 @@
           controller_username: "admin"
           controller_password: "{{ controller_password }}"
           validate_certs: false
-          identifier: "approve-remediation"
-          workflow_job_template: "cell-tower-remediation-workflow"
+          identifier: "Approve Remediation"
+          workflow_job_template: "{{ workflow_name }}"
           approval_node:
             description: "Do this?"
             name: "approve-remediation"
@@ -357,25 +407,10 @@
           controller_username: "admin"
           controller_password: "{{ controller_password }}"
           validate_certs: false
-          identifier: "approve-remediation"
-          workflow_job_template: "cell-tower-remediation-workflow"
+          identifier: "Approve Remediation"
+          workflow_job_template: "{{ workflow_name }}"
           success_nodes:
-            - "fix-cell-tower"
-          organization: Default
-          state: present
-
-      - name: Add check-cell-tower node to workflow
-        awx.awx.workflow_job_template_node:
-          controller_host: "{{ controller_hostname }}"
-          controller_username: "admin"
-          controller_password: "{{ controller_password }}"
-          validate_certs: false
-          identifier: "check-cell-tower"
-          job_type: "check"
-          workflow_job_template: "cell-tower-remediation-workflow"
-          unified_job_template: "setup-cell-tower"
-          success_nodes:
-            - "approve-remediation"
+            - "Fix Cell Tower"
           organization: Default
           state: present
 
@@ -385,11 +420,56 @@
           controller_username: "admin"
           controller_password: "{{ controller_password }}"
           validate_certs: false
-          identifier: "create-servicenow-incident"
-          workflow_job_template: "cell-tower-remediation-workflow"
+          identifier: "Create ServiceNow Ticket"
+          workflow_job_template: "{{ workflow_name }}"
           unified_job_template: "create-incident"
+          extra_data:
+            config_drift: true
+          always_nodes:
+            - "Approve Remediation"
+          organization: Default
+          state: present
+
+      - name: Add create-incident node to workflow
+        awx.awx.workflow_job_template_node:
+          controller_host: "{{ controller_hostname }}"
+          controller_username: "admin"
+          controller_password: "{{ controller_password }}"
+          validate_certs: false
+          identifier: "Create Ticket"
+          workflow_job_template: "{{ workflow_name }}"
+          unified_job_template: "create-incident"
+          organization: Default
+          state: present
+
+      - name: Add detect-drift node to workflow
+        awx.awx.workflow_job_template_node:
+          controller_host: "{{ controller_hostname }}"
+          controller_username: "admin"
+          controller_password: "{{ controller_password }}"
+          validate_certs: false
+          identifier: "Drift Detected?"
+          workflow_job_template: "{{ workflow_name }}"
+          unified_job_template: "detect-drift"
           success_nodes:
-            - "check-cell-tower"
+            - "Create ServiceNow Ticket"
+          failure_nodes:
+            - "Create Ticket"
+          organization: Default
+          state: present
+
+      - name: Add check-cell-tower node to workflow
+        awx.awx.workflow_job_template_node:
+          controller_host: "{{ controller_hostname }}"
+          controller_username: "admin"
+          controller_password: "{{ controller_password }}"
+          validate_certs: false
+          identifier: "Check Tower"
+          job_type: "check"
+          workflow_job_template: "{{ workflow_name }}"
+          unified_job_template: "setup-cell-tower"
+          success_nodes:
+            - "Drift Detected?"
           organization: Default
           state: present
 

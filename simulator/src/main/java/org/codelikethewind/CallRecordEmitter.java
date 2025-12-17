@@ -64,11 +64,18 @@ public class CallRecordEmitter {
     }
 
     // Simulate calls ending - decrement active calls periodically
+    // End 3 calls every 3s to balance with 1 call/second emit rate
     @Scheduled(every = "3s", delayed = "10s")
     void endCalls() {
-        if (control.getActiveCallCount() > 0) {
-            control.decrementActiveCalls();
-            System.out.println("[CallRecordEmitter] Call ended. Active calls: " + control.getActiveCallCount());
+        int ended = 0;
+        for (int i = 0; i < 3; i++) {
+            if (control.getActiveCallCount() > 0) {
+                control.decrementActiveCalls();
+                ended++;
+            }
+        }
+        if (ended > 0) {
+            System.out.println("[CallRecordEmitter] " + ended + " call(s) ended. Active calls: " + control.getActiveCallCount());
         }
     }
 
