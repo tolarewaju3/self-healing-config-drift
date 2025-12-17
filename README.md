@@ -1,6 +1,6 @@
 # 🔧 Self-Healing Infrastructure Demo
 
-A comprehensive demonstration of self-healing infrastructure capabilities using Ansible Automation Platform (AAP) and Event-Driven Ansible (EDA). This project simulates cell tower infrastructure that automatically detects configuration drift and remediates failures without manual intervention.
+A comprehensive demonstration of self-healing infrastructure capabilities using Event-Driven Ansible (EDA). This project simulates cell tower infrastructure that automatically detects configuration drift and remediates failures without manual intervention.
 
 ## 📋 Overview
 
@@ -35,9 +35,12 @@ Before installing this demo, ensure you have:
    - Valid Red Hat subscription with AAP entitlement
    - Access to the Red Hat Operator Catalog
 
-3. **OpenShift CLI (`oc`) installed and configured**
+3. **A ServiceNow instance**
+   - Access to a ServiceNow instance for incident creation and tracking
 
-4. **Ansible installed locally** (for running the setup playbook)
+4. **OpenShift CLI (`oc`) installed and configured**
+
+5. **Ansible installed locally** (for running the setup playbook)
 
 ## 🚀 Installation
 
@@ -49,18 +52,33 @@ First, authenticate to your OpenShift cluster:
 oc login -u <admin_username> -p <admin_password> <api_url>
 ```
 
-Replace:
-- `<admin_username>` with your OpenShift admin username
-- `<admin_password>` with your admin password
-- `<api_url>` with your OpenShift API URL (e.g., `https://api.your-cluster.example.com:6443`)
+### Step 2: Configure Secrets
 
-### Step 2: Run the Setup Playbook
+Before running the setup playbook, you need to configure your secrets file. Copy the template and fill in your values:
 
-Navigate to the `tower-setup` directory and run the main setup playbook:
+```bash
+cp vars/your_secrets.yml vars/secrets.yml
+```
+
+Edit `vars/secrets.yml` and fill in the following values:
+
+- **`ocp_api_host`**: Your OpenShift API URL (e.g., `https://api.your-cluster.example.com:6443`)
+- **`ocp_bearer_token`**: Your OpenShift bearer token (get it with `oc whoami -t` or create a service account token)
+- **`supabase_anon_key`**: Your Supabase anonymous key (for event tracking)
+- **`servicenow_host`**: Your ServiceNow instance hostname (e.g., `dev12345.service-now.com`)
+- **`servicenow_username`**: Your ServiceNow username
+- **`servicenow_password`**: Your ServiceNow password
+- **`cell_id`**: Default cell tower ID (e.g., `ATX`, `NYC`, `CHI`)
+
+**Note**: The `vars/secrets.yml` file is gitignored and should not be committed to version control.
+
+### Step 3: Run the Setup Playbook
+
+Navigate to the `tower-setup` directory and run the main setup playbook with your secrets file:
 
 ```bash
 cd tower-setup
-ansible-playbook setup-all.yml
+ansible-playbook setup-all.yml -e @../vars/secrets.yml
 ```
 
 This playbook will:
@@ -83,7 +101,7 @@ This playbook will:
    - Set up rulebook activations for automatic remediation
    - Configure event sources (Kafka listeners)
 
-### Step 3: Verify Installation
+### Step 4: Verify Installation
 
 After the playbook completes, verify the installation:
 
@@ -151,7 +169,8 @@ Tower configurations are stored in Git (`vars/cell_towers.yml`), serving as the 
 ├── simulator/                     # Cell tower simulator application
 └── vars/
     ├── cell_towers.yml            # Source of truth for tower configurations
-    └── secrets.yml                # Secret variables (not in repo)
+    ├── your_secrets.yml           # Template for secrets (copy to secrets.yml)
+    └── secrets.yml                 # Secret variables (gitignored, not in repo)
 ```
 
 ## 🎮 Usage
@@ -192,30 +211,6 @@ To test the self-healing capabilities:
    ```
 3. Watch EDA detect the issue and trigger remediation
 
-## 🔍 Monitoring
-
-### Kafka UI
-
-Access Kafka UI to monitor message flow:
-
-```bash
-oc get route kafka-ui -n openshift-operators -o jsonpath='{.spec.host}'
-```
-
-### Network Dashboard
-
-Access the network dashboard to view tower health:
-
-```bash
-oc get route network-dashboard -n openshift-operators -o jsonpath='{.spec.host}'
-```
-
-### AAP Job History
-
-View remediation history in AAP:
-- Navigate to **Jobs** → **Completed** to see remediation runs
-- Check workflow visualizations to see the approval gates
-
 ## 🛠️ Customization
 
 ### Adding New Towers
@@ -245,36 +240,9 @@ condition: event.body.dropRate > 0.05  # Change from 0.03 to 0.05
 
 - The setup process may take 15-30 minutes depending on cluster resources
 - Ensure you have sufficient cluster capacity for AAP (recommended: 8+ CPU cores, 32GB+ RAM)
-- ServiceNow integration requires valid credentials configured in AAP
+- ServiceNow integration requires valid credentials configured in `vars/secrets.yml`
 - The demo uses Supabase for event tracking (configure credentials in `vars/secrets.yml`)
-
-## 🐛 Troubleshooting
-
-### AAP Not Starting
-
-Check operator logs:
-```bash
-oc logs -n aap -l app.kubernetes.io/name=ansible-automation-platform-operator
-```
-
-### EDA Rulebook Not Activating
-
-Verify the rulebook activation status:
-```bash
-oc get rulebookactivation -n aap
-```
-
-Check EDA logs:
-```bash
-oc logs -n aap -l app=eda
-```
-
-### Towers Not Emitting Events
-
-Check simulator pod logs:
-```bash
-oc logs -n openshift-operators <tower-pod-name>
-```
+- **Important**: Make sure to configure `vars/secrets.yml` with your actual values before running the setup playbook
 
 ## 📄 License
 
