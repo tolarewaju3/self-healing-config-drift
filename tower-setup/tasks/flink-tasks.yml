@@ -93,11 +93,11 @@
 
 - name: Download flink job
   ansible.builtin.get_url:
-    url: https://code-like-the-wind.s3.us-east-2.amazonaws.com/cell-tower-flink-streaming-1.0.jar
-    dest: /tmp/cell-tower-flink-streaming-1.0.jar
+    url: https://code-like-the-wind.s3.us-east-2.amazonaws.com/cell-tower-flink-streaming-1.1.jar
+    dest: /tmp/cell-tower-flink-streaming-1.1.jar
 
 - name: Upload flink job
-  shell: 'curl -X POST -H "Expect:" -F "jarfile=@/tmp/cell-tower-flink-streaming-1.0.jar"  \
+  shell: 'curl -X POST -H "Expect:" -F "jarfile=@/tmp/cell-tower-flink-streaming-1.1.jar"  \
                 http://{{ flink_url }}/jars/upload'
 
 - name: Get all flink jobs
@@ -110,5 +110,15 @@
 - set_fact:
     job: "{{ stdout.files[0] }}"
 
-- name: Run flink job
-  shell: 'curl -X POST "http://{{ flink_url }}/jars/{{ job.id }}/run?entry-class=com.demo.flink.streaming.StreamingJob"'
+- name: Run Flink job
+  shell: |
+    curl -X POST "http://{{ flink_url }}/jars/{{ job.id }}/run" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "entryClass": "com.demo.flink.streaming.StreamingJob",
+        "programArgsList": [
+          "--supabase.url", "https://jzcvqylgahgasmxfcqyb.supabase.co/rest/v1",
+          "--supabase.anonKey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6Y3ZxeWxnYWhnYXNteGZjcXliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY2MzIxNjksImV4cCI6MjA2MjIwODE2OX0.1_7NUHSzcMfoLlG8GT-2A53wQH8DkxxyBUa9DihCENM",
+          "--supabase.table", "{{ supabase_table | default("call_records") }}"
+        ]
+      }'
