@@ -1,8 +1,23 @@
+create table public.call_records (
+  id bigserial not null,
+  lat numeric(9, 6) not null,
+  lng numeric(9, 6) not null,
+  signal_strength integer not null,
+  is_dropped boolean not null default false,
+  timestamp timestamp with time zone null,
+  cell_id text null,
+  constraint call_records_pkey primary key (id)
+) TABLESPACE pg_default;
+
 create table public.remediation_events (
-  id uuid primary key default gen_random_uuid(),
-  tower_id text not null,
-  message text not null,
-  event_time timestamptz not null default now()
-);
+  id uuid not null default gen_random_uuid (),
+  event_time timestamp with time zone not null default now(),
+  event_type text null,
+  tower_id text null,
+  msg text null,
+  job_link text null,
+  ticket_link text null,
+  constraint remediation_events_pkey primary key (id)
+) TABLESPACE pg_default;
 
 alter publication supabase_realtime add table remediation_events;
